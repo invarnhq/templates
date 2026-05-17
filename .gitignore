@@ -1,0 +1,28 @@
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Node (if scripts/ ever needs deps)
+node_modules/
+
+# XcodeGen-generated artifacts — project.yml is the source of truth
+**/*.xcodeproj/
+**/*.xcworkspace/
+**/xcuserdata/
+
+# Build output
+**/DerivedData/
+**/.build/
+**/build/
+**/Pods/
+**/Carthage/Build/
+
+# Gradle
+**/.gradle/
+**/local.properties
+
+# Logs
+*.log

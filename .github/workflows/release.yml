@@ -1,0 +1,85 @@
+name: release
+
+# Triggered by tags of the form `<slug>@<version>` (e.g. `ios-pr-gate@1.0.0`).
+# Snapshots templates/<slug>/template.yaml into templates/<slug>/versions/<version>.yaml
+# and commits the snapshot to main. The cron sync in Invarn picks it up on its
+# next run.
+on:
+  push:
+    tags:
+      - '*@*'
+
+jobs:
+  archive:
+    name: Archive versioned snapshot
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Parse tag
+        id: parse
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          if [[ ! "$tag" =~ ^([a-z][a-z0-9-]+)@([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "Tag '$tag' does not match <slug>@<semver>"
+            exit 1
+          fi
+          slug="${BASH_REMATCH[1]}"
+          version="${BASH_REMATCH[2]}"
+          echo "slug=$slug" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Verify template + version match the tag
+        run: |
+          set -euo pipefail
+          slug="${{ steps.parse.outputs.slug }}"
+          version="${{ steps.parse.outputs.version }}"
+          src="templates/$slug/template.yaml"
+          if [ ! -f "$src" ]; then
+            echo "Tag '$slug@$version' but $src does not exist"
+            exit 1
+          fi
+          declared=$(grep -E '^version:' "$src" | head -1 | sed -E 's/^version:[[:space:]]*"?([0-9.]+)"?.*/\1/')
+          if [ "$declared" != "$version" ]; then
+            echo "Tag version $version does not match template.yaml's version $declared"
+            exit 1
+          fi
+
+      - name: Snapshot to versions/
+        run: |
+          set -euo pipefail
+          slug="${{ steps.parse.outputs.slug }}"
+          version="${{ steps.parse.outputs.version }}"
+          src="templates/$slug/template.yaml"
+          dest_dir="templates/$slug/versions"
+          dest="$dest_dir/$version.yaml"
+
+          mkdir -p "$dest_dir"
+
+          if [ -f "$dest" ]; then
+            echo "$dest already exists — version snapshots are write-once. Refusing to overwrite."
+            exit 1
+          fi
+          cp "$src" "$dest"
+
+      - name: Commit + push
+        run: |
+          set -euo pipefail
+          slug="${{ steps.parse.outputs.slug }}"
+          version="${{ steps.parse.outputs.version }}"
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No changes — snapshot already existed at tag time."
+            exit 0
+          fi
+          git config user.name 'invarn-bot'
+          git config user.email 'bot@invarn.com'
+          git add "templates/$slug/versions/$version.yaml"
+          git commit -m "release: $slug@$version"
+          git push origin HEAD:main

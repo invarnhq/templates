@@ -1,0 +1,208 @@
+name: validate
+
+on:
+  pull_request:
+    paths:
+      - 'templates/**'
+      - 'fixtures/**'
+      - 'SCHEMA.md'
+      - '.github/workflows/validate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'templates/**'
+      - 'fixtures/**'
+      - 'SCHEMA.md'
+
+jobs:
+  schema:
+    name: Schema validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install validators
+        run: npm install --no-save js-yaml@4 ajv@8
+
+      - name: Validate every template against the schema
+        run: |
+          node <<'JS'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const yaml = require('js-yaml');
+          const Ajv = require('ajv').default;
+
+          const SUPPORTED_API_VERSION = 'invarn/v1';
+          const SUPPORTED_STACKS = ['ios', 'android', 'kmm', 'node', 'python', 'go', 'docker'];
+          const MOBILE_STACKS = new Set(['ios', 'android', 'kmm']);
+
+          const templateSchema = {
+            type: 'object',
+            required: ['apiVersion', 'slug', 'version', 'stack', 'name', 'description', 'members'],
+            additionalProperties: false,
+            properties: {
+              apiVersion: { type: 'string', const: SUPPORTED_API_VERSION },
+              slug: { type: 'string', pattern: '^[a-z][a-z0-9]*(-[a-z0-9]+)*$' },
+              version: { type: 'string', pattern: '^\\d+\\.\\d+\\.\\d+$' },
+              stack: { type: 'string', enum: SUPPORTED_STACKS },
+              name: { type: 'string', minLength: 1, maxLength: 60 },
+              description: { type: 'string', minLength: 1, maxLength: 200 },
+              requires_env: {
+                type: 'array',
+                items: { type: 'string', pattern: '^[A-Z][A-Z0-9_]*$' },
+                default: [],
+              },
+              members: {
+                type: 'array',
+                minItems: 1,
+                items: {
+                  type: 'object',
+                  required: ['name', 'kind', 'inputs'],
+                  additionalProperties: false,
+                  properties: {
+                    name: { type: 'string', pattern: '^[a-z][a-z0-9]*(-[a-z0-9]+)*$' },
+                    kind: { type: 'string', minLength: 1 },
+                    inputs: { type: 'object' },
+                    requires_when: { type: 'object' },
+                  },
+                },
+              },
+            },
+          };
+
+          const ajv = new Ajv({ allErrors: true, useDefaults: true });
+          const validate = ajv.compile(templateSchema);
+
+          function walk(dir) {
+            const out = [];
+            for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+              const full = path.join(dir, entry.name);
+              if (entry.isDirectory()) out.push(...walk(full));
+              else if (entry.name === 'template.yaml' || /^\d+\.\d+\.\d+\.yaml$/.test(entry.name)) {
+                out.push(full);
+              }
+            }
+            return out;
+          }
+
+          const root = path.resolve('templates');
+          if (!fs.existsSync(root)) {
+            console.log('No templates/ directory yet — nothing to validate.');
+            process.exit(0);
+          }
+
+          const files = walk(root);
+          if (files.length === 0) {
+            console.log('templates/ exists but is empty — nothing to validate.');
+            process.exit(0);
+          }
+
+          let failed = 0;
+          for (const file of files) {
+            const raw = fs.readFileSync(file, 'utf8');
+            let doc;
+            try {
+              doc = yaml.load(raw);
+            } catch (err) {
+              console.error(`✗ ${file}: YAML parse error — ${err.message}`);
+              failed++;
+              continue;
+            }
+
+            if (!validate(doc)) {
+              console.error(`✗ ${file}: schema validation failed`);
+              for (const e of validate.errors ?? []) {
+                console.error(`    ${e.instancePath || '/'} ${e.message}`);
+              }
+              failed++;
+              continue;
+            }
+
+            // Mobile-stack templates may not use `kind: script`
+            if (MOBILE_STACKS.has(doc.stack)) {
+              const scriptMembers = (doc.members ?? []).filter((m) => m.kind === 'script');
+              if (scriptMembers.length > 0) {
+                console.error(
+                  `✗ ${file}: mobile-stack template (${doc.stack}) uses kind: script — ` +
+                  `forbidden by SCHEMA.md. Use typed cibuild steps. ` +
+                  `Offending members: ${scriptMembers.map((m) => m.name).join(', ')}`,
+                );
+                failed++;
+                continue;
+              }
+            }
+
+            // Path-vs-slug invariant: templates/<slug>/template.yaml or versions/X.Y.Z.yaml
+            const relDir = path.dirname(path.relative(root, file));
+            const topSegment = relDir.split(path.sep)[0];
+            if (topSegment !== doc.slug) {
+              console.error(
+                `✗ ${file}: slug "${doc.slug}" doesn't match directory "${topSegment}"`,
+              );
+              failed++;
+              continue;
+            }
+
+            // Versioned snapshots: filename must match the `version` field
+            if (path.basename(file) !== 'template.yaml') {
+              const expected = `${doc.version}.yaml`;
+              if (path.basename(file) !== expected) {
+                console.error(
+                  `✗ ${file}: versioned snapshot filename should be ${expected}`,
+                );
+                failed++;
+                continue;
+              }
+            }
+
+            console.log(`✓ ${file} (${doc.slug}@${doc.version})`);
+          }
+
+          if (failed > 0) {
+            console.error(`\n${failed} template(s) failed validation.`);
+            process.exit(1);
+          }
+          console.log(`\nAll ${files.length} template(s) valid.`);
+          JS
+
+  fixtures:
+    name: Fixture presence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Each template references an existing fixture
+        run: |
+          set -euo pipefail
+          if [ ! -d templates ]; then
+            echo "No templates/ directory yet — skipping."
+            exit 0
+          fi
+          missing=0
+          while IFS= read -r tpl; do
+            fixture=$(grep -E '^# fixture:' "$tpl" | head -1 | sed 's/^# fixture:[[:space:]]*//')
+            if [ -z "$fixture" ]; then
+              echo "✗ $tpl: missing '# fixture: <slug>' frontmatter comment"
+              missing=$((missing + 1))
+              continue
+            fi
+            if [ ! -d "fixtures/$fixture" ]; then
+              echo "✗ $tpl: declares fixture '$fixture' but fixtures/$fixture does not exist"
+              missing=$((missing + 1))
+              continue
+            fi
+            echo "✓ $tpl → fixtures/$fixture"
+          done < <(find templates -name 'template.yaml' -type f)
+          if [ "$missing" -gt 0 ]; then
+            echo ""
+            echo "$missing template(s) reference missing fixtures."
+            exit 1
+          fi
+
+  # TODO: dispatch-validation job — runs each template against its declared
+  # fixture on an actual Invarn runner. Lands when scripts/validate-template.mjs
+  # is added (deferred from the v1 skeleton).
