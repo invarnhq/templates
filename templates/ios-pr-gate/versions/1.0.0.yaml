@@ -1,0 +1,44 @@
+# Template: iOS — PR gate
+#
+# Build + unit test on every PR. Recommended starter for iOS repos.
+#
+# Members:
+#   - deps   — cocoapods-install; runs only when the repo has Pods
+#     (gated by requires_when: { pods: true }). Empty inputs lets the
+#     step run from the cloned repo root, which is where Podfile lives
+#     in the typical single-project iOS layout.
+#   - build  — xcodebuild-build-for-test against the configured scheme,
+#     destination resolved to the first available simulator at
+#     execute-time via the destination: "auto" convention.
+#   - test   — xcode-test-without-building, same scheme + destination.
+#
+# Required env:
+#   IOS_PROJECT_PATH  — relative path to the .xcodeproj or .xcworkspace
+#   IOS_SCHEME        — Xcode scheme name to build + test
+apiVersion: invarn/v1
+slug: ios-pr-gate
+version: 1.0.0
+stack: ios
+name: "iOS — PR gate"
+description: "Build + unit test on every PR. Recommended starter for iOS repos."
+requires_env:
+  - IOS_PROJECT_PATH
+  - IOS_SCHEME
+members:
+  - name: deps
+    kind: cocoapods-install
+    requires_when: { pods: true }
+    inputs: {}
+  - name: build
+    kind: xcodebuild-build-for-test
+    inputs:
+      project_path: "${IOS_PROJECT_PATH}"
+      scheme: "${IOS_SCHEME}"
+      configuration: "Debug"
+      destination: "auto"
+  - name: test
+    kind: xcode-test-without-building
+    inputs:
+      project_path: "${IOS_PROJECT_PATH}"
+      scheme: "${IOS_SCHEME}"
+      destination: "auto"

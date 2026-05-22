@@ -169,40 +169,7 @@ jobs:
           console.log(`\nAll ${files.length} template(s) valid.`);
           JS
 
-  fixtures:
-    name: Fixture presence
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Each template references an existing fixture
-        run: |
-          set -euo pipefail
-          if [ ! -d templates ]; then
-            echo "No templates/ directory yet — skipping."
-            exit 0
-          fi
-          missing=0
-          while IFS= read -r tpl; do
-            fixture=$(grep -E '^# fixture:' "$tpl" | head -1 | sed 's/^# fixture:[[:space:]]*//')
-            if [ -z "$fixture" ]; then
-              echo "✗ $tpl: missing '# fixture: <slug>' frontmatter comment"
-              missing=$((missing + 1))
-              continue
-            fi
-            if [ ! -d "fixtures/$fixture" ]; then
-              echo "✗ $tpl: declares fixture '$fixture' but fixtures/$fixture does not exist"
-              missing=$((missing + 1))
-              continue
-            fi
-            echo "✓ $tpl → fixtures/$fixture"
-          done < <(find templates -name 'template.yaml' -type f)
-          if [ "$missing" -gt 0 ]; then
-            echo ""
-            echo "$missing template(s) reference missing fixtures."
-            exit 1
-          fi
-
-  # TODO: dispatch-validation job — runs each template against its declared
-  # fixture on an actual Invarn runner. Lands when scripts/validate-template.mjs
-  # is added (deferred from the v1 skeleton).
+  # Cross-repo fixture-existence validation (against the standalone
+  # invarnhq/fixture-* repos) is a follow-up — see fixtures/README.md
+  # for the current catalog. The retired in-tree fixture-presence job
+  # checked a fixtures/<slug>/ subdir that no longer exists.

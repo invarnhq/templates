@@ -64,7 +64,11 @@ jobs:
           mkdir -p "$dest_dir"
 
           if [ -f "$dest" ]; then
-            echo "$dest already exists — version snapshots are write-once. Refusing to overwrite."
+            if cmp -s "$src" "$dest"; then
+              echo "$dest already exists with matching content — nothing to snapshot."
+              exit 0
+            fi
+            echo "$dest already exists with content that differs from $src — version snapshots are write-once. Refusing to overwrite."
             exit 1
           fi
           cp "$src" "$dest"
