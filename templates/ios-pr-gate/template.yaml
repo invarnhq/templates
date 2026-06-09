@@ -19,7 +19,7 @@
 #   IOS_SCHEME        — Xcode scheme name to build + test
 apiVersion: invarn/v1
 slug: ios-pr-gate
-version: 1.0.0
+version: 1.0.1
 stack: ios
 name: "iOS — PR gate"
 description: "Build + unit test on every PR. Recommended starter for iOS repos."
