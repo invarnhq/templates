@@ -7,10 +7,12 @@
 #     (gated by requires_when: { pods: true }). Empty inputs lets the
 #     step run from the cloned repo root, which is where Podfile lives
 #     in the typical single-project iOS layout.
-#   - build  — xcodebuild-build-for-test against the configured scheme,
+#   - build  — xcode-build-for-test against the configured scheme,
 #     destination resolved to the first available simulator at
 #     execute-time via the destination: "auto" convention.
-#   - test   — xcode-test-without-building, same scheme + destination.
+#   - test   — xcode-test-without-building; runs the pre-compiled tests
+#     the build step produced (xctestrun defaults to the build output),
+#     so it takes only a destination, not a scheme or project path.
 #
 # Required env:
 #   IOS_PROJECT_PATH  — relative path to the .xcodeproj or .xcworkspace
@@ -30,7 +32,7 @@ members:
     requires_when: { pods: true }
     inputs: {}
   - name: build
-    kind: xcodebuild-build-for-test
+    kind: xcode-build-for-test
     inputs:
       project_path: "${IOS_PROJECT_PATH}"
       scheme: "${IOS_SCHEME}"
@@ -39,6 +41,4 @@ members:
   - name: test
     kind: xcode-test-without-building
     inputs:
-      project_path: "${IOS_PROJECT_PATH}"
-      scheme: "${IOS_SCHEME}"
       destination: "auto"
