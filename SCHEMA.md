@@ -57,6 +57,7 @@ Supported fact keys (must match `DetectorFacts` shape — see Invarn's `lib/dash
 | `pods` | `boolean` | `DetectorFacts.ios.pods` |
 | `wrapper` | `'workspace' \| 'project' \| 'none'` | `DetectorFacts.ios.wrapper` |
 | `kmm_integration` | `'cocoapods' \| 'spm-xcframework' \| 'compose' \| 'manual'` | `DetectorFacts.kmm.integration` |
+| `spm_package` | `boolean` | `DetectorFacts.spm` presence (a detected SwiftPM `Package.swift`) |
 
 ## Versioning
 

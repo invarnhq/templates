@@ -1,0 +1,52 @@
+# Template: iOS — UI fidelity
+#
+# Renders SwiftUI screens from a Swift package and pairs each with an
+# uploaded reference image. No app build or simulator required.
+#
+# Members:
+#   - render — ui-fidelity-render; compiles a throwaway SwiftPM harness
+#     against the configured package + target, constructs each requested
+#     screen as `<ViewTypeName>()` (parameterless init), and renders it
+#     with SwiftUI ImageRenderer at 393x852 device points @2x by default
+#     (override via the step's optional render_size / scale inputs).
+#     Only seeded when the repo contains a SwiftPM package
+#     (gated by requires_when: { spm_package: true }).
+#
+# Run inputs (per run, not per template):
+#   Runs are driven through the protocol-run API with uploaded files and
+#   params. Upload one or more reference images, then pass
+#   `params.screens` mapping each SwiftUI view type name to the basename
+#   of its reference image, e.g.
+#     { "screens": { "HomeScreen": "home.png", "SettingsScreen": "settings.png" } }
+#   `wait` defaults to true when files or params are present; the
+#   terminal response pairs every screen with its rendered and reference
+#   images. Any screen that fails to render fails the build, with
+#   per-screen status isolated in protocol-result.json.
+#
+# Required env (auto-filled at connect time when detection is confident):
+#   UI_FIDELITY_PACKAGE_PATH — repo-relative path to the SwiftPM package
+#     directory ("." when Package.swift is at the repo root)
+#   UI_FIDELITY_TARGET       — package target whose Sources/<Target>/
+#     directory contains the renderable SwiftUI views
+#
+# The views target must compile for macOS and expose parameterless
+# SwiftUI views — anything else reports a structured per-screen error.
+#
+# fixture: ios-spm
+# expected_outcome: passed
+apiVersion: invarn/v1
+slug: ui-fidelity
+version: 1.0.0
+stack: ios
+name: "iOS — UI fidelity"
+description: "Renders SwiftUI screens from a Swift package and pairs each with an uploaded reference image. No app build or simulator required."
+requires_env:
+  - UI_FIDELITY_PACKAGE_PATH
+  - UI_FIDELITY_TARGET
+members:
+  - name: render
+    kind: ui-fidelity-render
+    requires_when: { spm_package: true }
+    inputs:
+      package_path: "${UI_FIDELITY_PACKAGE_PATH}"
+      target: "${UI_FIDELITY_TARGET}"
