@@ -1,0 +1,52 @@
+# Template: iOS — UI fidelity (adhoc)
+#
+# Renders SwiftUI wrapper views that the calling agent ships with each
+# run, pairing each with an uploaded reference image. No SwiftPM package
+# in the repo and no app build or simulator required — the proof covers
+# what the agent shipped, not committed code. Seeds on any iOS repo,
+# including app-shaped ones with no Package.swift.
+#
+# Members:
+#   - render — ui-fidelity-render with package_source: inputs. Builds a
+#     throwaway SwiftPM harness against the package the caller ships at
+#     run time, constructs each requested screen as `<ViewTypeName>()`
+#     (parameterless init), and renders it with SwiftUI ImageRenderer at
+#     393x852 device points @2x by default (override via the step's
+#     optional render_size / scale inputs). No requires_when gate and no
+#     required env: the package arrives per run, so the member seeds
+#     regardless of repo shape.
+#
+# Run inputs (per run, not per template):
+#   Runs are driven through the protocol-run API with uploaded files and
+#   params. Ship exactly one `package.tar.gz` in the uploaded files: a
+#   self-contained SwiftPM package whose single library target holds the
+#   wrapper views (the renderer auto-discovers the target — naming it is
+#   not required). Wrapper views must be public, parameterless, and
+#   compile for macOS; stub heavy or third-party dependencies rather than
+#   importing them. Upload the reference images alongside the archive,
+#   then pass `params.screens` mapping each wrapper view type name to the
+#   basename of its reference image, e.g.
+#     { "screens": { "HomeScreen": "home.png", "SettingsScreen": "settings.png" } }
+#   `wait` defaults to true when files or params are present; the
+#   terminal response pairs every screen with its rendered and reference
+#   images. Any screen that fails to render fails the build, with
+#   per-screen status isolated in protocol-result.json. A lean slice
+#   builds in about a minute — that figure is a property of keeping the
+#   slice small, not a timeout; a heavier slice simply builds slower.
+#
+# No requires_env: the render package is supplied per run rather than
+# read from the repo, so there is nothing to detect or auto-fill.
+#
+# fixture: ios-pods
+# expected_outcome: passed
+apiVersion: invarn/v1
+slug: ui-fidelity-adhoc
+version: 1.0.0
+stack: ios
+name: "iOS — UI fidelity (adhoc)"
+description: "Renders SwiftUI wrapper views the calling agent ships with each run and pairs each with an uploaded reference image. No SwiftPM package required — proves the agent's proposal, not committed code."
+members:
+  - name: render
+    kind: ui-fidelity-render
+    inputs:
+      package_source: inputs
