@@ -1,0 +1,58 @@
+# Template: Android — UI fidelity (adhoc)
+#
+# Renders parameterless Jetpack Compose wrappers that the calling agent
+# ships with each run, pairing each with an uploaded reference image. No
+# Gradle project in the repo and no app build or emulator required — the
+# proof covers what the agent shipped, not committed code. Seeds on any
+# Android repo, including app-shaped ones.
+#
+# Members:
+#   - render — ui-fidelity-render-android. Extracts the self-contained
+#     Gradle project the caller ships at run time, runs its Roborazzi
+#     record task (default recordRoborazziDebug) once, and renders each
+#     requested screen's parameterless @Composable to a PNG via Roborazzi
+#     + Robolectric on the JVM — no device, no emulator — then trims each
+#     render to its content, writes a reference-sized aligned copy, and
+#     reports dimensions (the same post-processing as the iOS render).
+#     No requires_when gate and no required env: the package arrives per
+#     run, so the member seeds regardless of repo shape.
+#
+# Run inputs (per run, not per template):
+#   Runs are driven through the protocol-run API with uploaded files and
+#   params. Ship exactly one `package.tar.gz` in the uploaded files: a
+#   self-contained Gradle project with a settings.gradle(.kts) at its
+#   root, carrying its own Compose / Roborazzi / Robolectric dependencies
+#   (resolved from the runner's pre-baked caches), and a module holding
+#   the wrapper composables plus one Roborazzi screenshot test per screen.
+#   Each wrapper must be a parameterless @Composable that renders from
+#   hardcoded fixture data — stub heavy or third-party dependencies
+#   rather than importing them. The screen→golden contract is a test
+#   method named `render<ScreenName>` that captures the wrapper, so the
+#   renderer pairs each golden to its screen. Upload the reference images
+#   alongside the archive, then pass `params.screens` mapping each wrapper
+#   composable name to the basename of its reference image, e.g.
+#     { "screens": { "HomeScreen": "home.png", "SettingsScreen": "settings.png" } }
+#   `wait` defaults to true when files or params are present; the terminal
+#   response pairs every screen with its rendered and reference images.
+#   Any screen that fails to render fails the build, with per-screen
+#   status isolated in protocol-result.json. The run renders and pairs —
+#   it does not score the match, so compare the images yourself. A lean
+#   slice builds in about a minute on a deps-baked runner — that figure is
+#   a property of keeping the slice small, not a timeout.
+#
+# No requires_env: the render package is supplied per run rather than read
+# from the repo, so there is nothing to detect or auto-fill.
+#
+# fixture: android-single (planned) — package-less app shape; seeds with
+#   no Gradle render project, the render package is shipped per run.
+# expected_outcome: passed
+apiVersion: invarn/v1
+slug: android-ui-fidelity
+version: 1.0.0
+stack: android
+name: "Android — UI fidelity (adhoc)"
+description: "Renders Jetpack Compose wrappers the calling agent ships with each run and pairs each with an uploaded reference image. No app build or emulator — proves the agent's proposal, not committed code."
+members:
+  - name: render
+    kind: ui-fidelity-render-android
+    inputs: {}
