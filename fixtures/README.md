@@ -12,7 +12,7 @@ Each fixture is its own GitHub repo so it can be cloned at root, matching the la
 |--|--|--|--|
 | `ios-spm` | [invarnhq/fixture-ios-spm](https://github.com/invarnhq/fixture-ios-spm) | iOS | `ios-pr-gate` (no Pods — deps step drops), `ui-fidelity` (SwiftPM package with renderable SwiftUI views) |
 | `ios-pods` | [invarnhq/fixture-ios-pods](https://github.com/invarnhq/fixture-ios-pods) | iOS | `ios-pr-gate` (Pods present — all members run), `ui-fidelity-adhoc` (package-less app shape — seeds with no SwiftPM package; the render package is shipped per run) |
-| `android-single` | invarnhq/fixture-android-single (planned) | Android | `android-pr-gate` (empty `ANDROID_FLAVOR`) |
+| `android-single` | invarnhq/fixture-android-single (planned) | Android | `android-pr-gate` (empty `ANDROID_FLAVOR`), `android-ui-fidelity` (package-less app shape — seeds with no Gradle render project; the render package is shipped per run) |
 | `android-flavors` | invarnhq/fixture-android-flavors (planned) | Android | `android-pr-gate` (multi-flavor) |
 | `kmm-spm-xcframework` | invarnhq/fixture-kmm-spm-xcframework (planned) | KMM | `kmm-pr-gate` (SPM/XCFramework integration) |
 | `kmm-cocoapods` | invarnhq/fixture-kmm-cocoapods (planned) | KMM | `kmm-pr-gate` (CocoaPods integration) |
