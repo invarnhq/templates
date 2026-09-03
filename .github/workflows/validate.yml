@@ -1,5 +1,8 @@
 name: validate
 
+# Both jobs no-op cleanly when templates/ is empty or absent — this is the
+# green baseline before any templates land.
+
 on:
   pull_request:
     paths:
