@@ -1,0 +1,52 @@
+# Template: KMM — UI fidelity
+#
+# Renders the shared Compose Multiplatform screens of a Kotlin Multiplatform
+# repo and pairs each with its committed design reference, via Roborazzi +
+# Robolectric on the JVM — no device, no emulator, no app build.
+#
+# Why the Android renderer on a KMM repo:
+#   With Compose Multiplatform the shared UI is one body of Kotlin that ships
+#   to both halves, so the Android Compose render is the fidelity proof for
+#   the iOS surface too — there is deliberately no SwiftUI render path here.
+#   A KMM repo detects as `kmm` and never separately as `ios` or `android`,
+#   so this is the fidelity template a KMM repo is offered.
+#
+# Members:
+#   - render — ui-fidelity-render-android. Builds the committed render
+#     package, runs its Roborazzi record task (default recordRoborazziDebug)
+#     once, and renders each screen's parameterless @Composable to a PNG via
+#     Roborazzi + Robolectric on the JVM — no device, no emulator — then
+#     trims each render to its content, writes a reference-sized aligned
+#     copy, and reports dimensions. No requires_when gate: the render package
+#     is resolved per run from what is committed, so the member seeds on any
+#     KMM repo.
+#
+# Run inputs: none.
+#   UI-fidelity verifies pushed commits only — a verdict on uploaded bytes
+#   cannot be tied to a commit, so it cannot be tracked, replayed, or gated.
+#   Author and validate a wrapper locally, then commit and push the wrapper
+#   and its references: the fidelity gate runs on the push. To re-verify
+#   already-pushed screens on demand, start a run with no files and no
+#   params — it fans out the saved proofs at the branch head (or a pinned
+#   commit) and returns per-package results, one dispatch per committed
+#   render package. A run that ships files or params is refused before it
+#   starts.
+#
+# No requires_env: the render package and its references are read from the
+# commit, so there is nothing to detect or auto-fill. KMM_SHARED_MODULE is
+# lifted into member env automatically when the detector finds a shared
+# module; this renderer does not read it, so it is not required here.
+#
+# fixture: kmm-compose (planned) — Compose Multiplatform shared UI; the
+#   render package and its references are committed, not shipped per run.
+# expected_outcome: passed
+apiVersion: invarn/v1
+slug: kmm-ui-fidelity
+version: 1.0.0
+stack: kmm
+name: "KMM — UI fidelity"
+description: "Renders the shared Compose Multiplatform screens of a Kotlin Multiplatform repo and pairs each with its committed design reference. No device, no emulator, no app build."
+members:
+  - name: render
+    kind: ui-fidelity-render-android
+    inputs: {}

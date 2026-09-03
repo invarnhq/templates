@@ -16,7 +16,7 @@ Each fixture is its own GitHub repo so it can be cloned at root, matching the la
 | `android-flavors` | invarnhq/fixture-android-flavors (planned) | Android | `android-pr-gate` (multi-flavor) |
 | `kmm-spm-xcframework` | invarnhq/fixture-kmm-spm-xcframework (planned) | KMM | `kmm-pr-gate` (SPM/XCFramework integration) |
 | `kmm-cocoapods` | invarnhq/fixture-kmm-cocoapods (planned) | KMM | `kmm-pr-gate` (CocoaPods integration) |
-| `kmm-compose` | invarnhq/fixture-kmm-compose (planned) | KMM | `kmm-pr-gate` (Compose Multiplatform integration) |
+| `kmm-compose` | invarnhq/fixture-kmm-compose (planned) | KMM | `kmm-pr-gate` (Compose Multiplatform integration), `kmm-ui-fidelity` (shared Compose UI — the render package and its references are committed) |
 
 ## Adding a new fixture
 
